@@ -23,7 +23,7 @@ INSTALLED_APPS = [
     'django_countries',
     'core'
 ]
-
+# hi hello
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
