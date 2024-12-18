@@ -164,8 +164,9 @@ class CheckoutView(View):
                 'DISPLAY_COUPON_FORM': True
             }
             return render(self.request, "checkout.html", context)
-
+        
         except ObjectDoesNotExist:
+            print("hi")
             messages.info(self.request, "You do not have an active order")
             return redirect("core:checkout")
 
