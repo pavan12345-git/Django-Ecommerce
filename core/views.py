@@ -209,7 +209,7 @@ class CheckoutView(View):
             messages.error(request, "Serious Error occurred")
             return redirect('/')
 
-
+#hello
 # def home(request):
 #     context = {
 #         'items': Item.objects.all()
