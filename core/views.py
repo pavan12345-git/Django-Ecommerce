@@ -153,40 +153,32 @@ class CategoryView(View):
 
 
 class CheckoutView(View):
-    def get(self, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
         try:
-            order = Order.objects.get(user=self.request.user, ordered=False)
+            order = Order.objects.get(user=request.user, ordered=False)
             form = CheckoutForm()
             context = {
                 'form': form,
-                'couponform': CouponForm(),
-                'order': order,
-                'DISPLAY_COUPON_FORM': True
+                'order': order
             }
-            return render(self.request, "checkout.html", context)
-        
+            return render(request, 'checkout.html', context)
         except ObjectDoesNotExist:
-            print("hi")
-            messages.info(self.request, "You do not have an active order")
-            return redirect("core:checkout")
+            messages.error(request, "You do not have an active order")
+            return redirect("core:order-summary")
 
-    def post(self, *args, **kwargs):
-        form = CheckoutForm(self.request.POST or None)
+    def post(self, request, *args, **kwargs):
+        form = CheckoutForm(request.POST or None)
         try:
-            order = Order.objects.get(user=self.request.user, ordered=False)
-            print(self.request.POST)
+            order = Order.objects.get(user=request.user, ordered=False)
             if form.is_valid():
                 street_address = form.cleaned_data.get('street_address')
                 apartment_address = form.cleaned_data.get('apartment_address')
                 country = form.cleaned_data.get('country')
                 zip = form.cleaned_data.get('zip')
-                # add functionality for these fields
-                # same_shipping_address = form.cleaned_data.get(
-                #     'same_shipping_address')
-                # save_info = form.cleaned_data.get('save_info')
                 payment_option = form.cleaned_data.get('payment_option')
+                
                 billing_address = BillingAddress(
-                    user=self.request.user,
+                    user=request.user,
                     street_address=street_address,
                     apartment_address=apartment_address,
                     country=country,
@@ -197,18 +189,25 @@ class CheckoutView(View):
                 order.billing_address = billing_address
                 order.save()
 
-                # add redirect to the selected payment option
                 if payment_option == 'S':
                     return redirect('core:payment', payment_option='stripe')
                 elif payment_option == 'P':
                     return redirect('core:payment', payment_option='paypal')
                 else:
-                    messages.warning(
-                        self.request, "Invalid payment option select")
+                    messages.warning(request, "Invalid payment option selected")
                     return redirect('core:checkout')
+            else:
+                messages.error(request, "Invalid form submission")
+                return render(request, 'checkout.html', {'form': form})
         except ObjectDoesNotExist:
-            messages.error(self.request, "You do not have an active order")
+            messages.error(request, "You do not have an active order")
             return redirect("core:order-summary")
+        except stripe.error.StripeError as e:
+            messages.error(request, "Something went wrong")
+            return redirect('/')
+        except Exception as e:
+            messages.error(request, "Serious Error occurred")
+            return redirect('/')
 
 
 # def home(request):
