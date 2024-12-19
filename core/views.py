@@ -383,3 +383,23 @@ class RequestRefundView(View):
             except ObjectDoesNotExist:
                 messages.info(self.request, "This order does not exist")
                 return redirect("core:request-refund")
+    def signup_view(request):
+        if request.method == 'POST':
+            username = request.POST['username']
+            password = request.POST['password']
+            # Check if the username already exists
+            if User.objects.filter(username=username).exists():
+            # Handle the error (e.g., return an error message to the user)
+                messages.error(request, 'Username already exists')
+                return render(request, 'signup.html')
+            try:
+                user = User.objects.create_user(username=username, password=password)
+                user.save()
+                # Redirect to a success page
+                return redirect('success_url')
+            except IntegrityError:
+                # Handle the error (e.g., return an error message to the user)
+                messages.error(request, 'An error occurred. Please try again.')
+                return render(request, 'signup.html')
+        else:
+            return render(request, 'signup.html')
