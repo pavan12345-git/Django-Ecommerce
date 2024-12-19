@@ -31,7 +31,7 @@ Ecommerce website built with Django 2.2.3, Python 3.7.3, and AWS
 
 # Installation
 
-`git clone https://github.com/zinmyoswe/Django-Ecommerce.git`
+`git clone https://github.com/J0hnMilt0n/Django-Ecommerce.git`
 
 `cd Django-Ecommerce`
 
