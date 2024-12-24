@@ -7,7 +7,7 @@ from django.shortcuts import render, get_object_or_404
 from django.views.generic import ListView, DetailView, View
 from django.shortcuts import redirect
 from django.utils import timezone
-from .forms import CheckoutForm, CouponForm, RefundForm
+from .forms import CheckoutForm, CouponForm, RefundForm, PromoCodeForm
 from .models import Item, OrderItem, Order, BillingAddress, Payment, Coupon, Refund, Category
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
@@ -17,7 +17,6 @@ import random
 import string
 import stripe
 stripe.api_key = settings.STRIPE_SECRET_KEY
-
 
 def create_ref_code():
     return ''.join(random.choices(string.ascii_lowercase + string.digits, k=20))
@@ -402,3 +401,20 @@ class RequestRefundView(View):
                 return render(request, 'signup.html')
         else:
             return render(request, 'signup.html')
+    
+    def login_view(request):
+        if request.method == 'POST':
+            username = request.POST['username']
+            password = request.POST['password']
+            user = authenticate(request, username=username, password=password)
+            if user is not None:
+                login(request, user)
+                return redirect('home')  # Redirect to a success page
+            else:
+                messages.error(request, 'Invalid username or password')
+                return render(request, 'login.html')
+        else:
+            return render(request, 'login.html')
+    
+
+
