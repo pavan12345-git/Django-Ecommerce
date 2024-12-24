@@ -19,15 +19,19 @@ class CheckoutForm(forms.Form):
     }))
     country = CountryField(blank_label='(select country)').formfield(widget=CountrySelectWidget(attrs={
         'class': 'custom-select d-block w-100'
-
     }))
     zip = forms.CharField(widget=forms.TextInput(attrs={
         'class': 'form-control'
     }))
-    same_shipping_address = forms.BooleanField(required=False)
+    same_billing_address = forms.BooleanField(required=False)
     save_info = forms.BooleanField(required=False)
-    payment_option = forms.ChoiceField(
-        widget=forms.RadioSelect, choices=PAYMENT_CHOICES)
+    payment_option = forms.ChoiceField(widget=forms.RadioSelect, choices=PAYMENT_CHOICES)
+
+class PromoCodeForm(forms.Form):
+    code = forms.CharField(max_length=50, required=True, widget=forms.TextInput(attrs={
+        'placeholder': 'Promo code',
+        'class': 'form-control'
+    }))
 
 
 class CouponForm(forms.Form):
