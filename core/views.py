@@ -7,7 +7,7 @@ from django.shortcuts import render, get_object_or_404
 from django.views.generic import ListView, DetailView, View
 from django.shortcuts import redirect
 from django.utils import timezone
-from .forms import CheckoutForm, CouponForm, RefundForm
+from .forms import CheckoutForm, CouponForm, RefundForm, PromoCodeForm
 from .models import Item, OrderItem, Order, BillingAddress, Payment, Coupon, Refund, Category
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
@@ -17,7 +17,6 @@ import random
 import string
 import stripe
 stripe.api_key = settings.STRIPE_SECRET_KEY
-
 
 def create_ref_code():
     return ''.join(random.choices(string.ascii_lowercase + string.digits, k=20))
@@ -153,40 +152,32 @@ class CategoryView(View):
 
 
 class CheckoutView(View):
-    def get(self, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
         try:
-            order = Order.objects.get(user=self.request.user, ordered=False)
+            order = Order.objects.get(user=request.user, ordered=False)
             form = CheckoutForm()
             context = {
                 'form': form,
-                'couponform': CouponForm(),
-                'order': order,
-                'DISPLAY_COUPON_FORM': True
+                'order': order
             }
-            return render(self.request, "checkout.html", context)
-        
+            return render(request, 'checkout.html', context)
         except ObjectDoesNotExist:
-            print("hi")
-            messages.info(self.request, "You do not have an active order")
-            return redirect("core:checkout")
+            messages.error(request, "You do not have an active order")
+            return redirect("core:order-summary")
 
-    def post(self, *args, **kwargs):
-        form = CheckoutForm(self.request.POST or None)
+    def post(self, request, *args, **kwargs):
+        form = CheckoutForm(request.POST or None)
         try:
-            order = Order.objects.get(user=self.request.user, ordered=False)
-            print(self.request.POST)
+            order = Order.objects.get(user=request.user, ordered=False)
             if form.is_valid():
                 street_address = form.cleaned_data.get('street_address')
                 apartment_address = form.cleaned_data.get('apartment_address')
                 country = form.cleaned_data.get('country')
                 zip = form.cleaned_data.get('zip')
-                # add functionality for these fields
-                # same_shipping_address = form.cleaned_data.get(
-                #     'same_shipping_address')
-                # save_info = form.cleaned_data.get('save_info')
                 payment_option = form.cleaned_data.get('payment_option')
+                
                 billing_address = BillingAddress(
-                    user=self.request.user,
+                    user=request.user,
                     street_address=street_address,
                     apartment_address=apartment_address,
                     country=country,
@@ -197,20 +188,27 @@ class CheckoutView(View):
                 order.billing_address = billing_address
                 order.save()
 
-                # add redirect to the selected payment option
                 if payment_option == 'S':
                     return redirect('core:payment', payment_option='stripe')
                 elif payment_option == 'P':
                     return redirect('core:payment', payment_option='paypal')
                 else:
-                    messages.warning(
-                        self.request, "Invalid payment option select")
+                    messages.warning(request, "Invalid payment option selected")
                     return redirect('core:checkout')
+            else:
+                messages.error(request, "Invalid form submission")
+                return render(request, 'checkout.html', {'form': form})
         except ObjectDoesNotExist:
-            messages.error(self.request, "You do not have an active order")
+            messages.error(request, "You do not have an active order")
             return redirect("core:order-summary")
+        except stripe.error.StripeError as e:
+            messages.error(request, "Something went wrong")
+            return redirect('/')
+        except Exception as e:
+            messages.error(request, "Serious Error occurred")
+            return redirect('/')
 
-
+#hello
 # def home(request):
 #     context = {
 #         'items': Item.objects.all()
@@ -383,3 +381,40 @@ class RequestRefundView(View):
             except ObjectDoesNotExist:
                 messages.info(self.request, "This order does not exist")
                 return redirect("core:request-refund")
+    def signup_view(request):
+        if request.method == 'POST':
+            username = request.POST['username']
+            password = request.POST['password']
+            # Check if the username already exists
+            if User.objects.filter(username=username).exists():
+            # Handle the error (e.g., return an error message to the user)
+                messages.error(request, 'Username already exists')
+                return render(request, 'signup.html')
+            try:
+                user = User.objects.create_user(username=username, password=password)
+                user.save()
+                # Redirect to a success page
+                return redirect('success_url')
+            except IntegrityError:
+                # Handle the error (e.g., return an error message to the user)
+                messages.error(request, 'An error occurred. Please try again.')
+                return render(request, 'signup.html')
+        else:
+            return render(request, 'signup.html')
+    
+    def login_view(request):
+        if request.method == 'POST':
+            username = request.POST['username']
+            password = request.POST['password']
+            user = authenticate(request, username=username, password=password)
+            if user is not None:
+                login(request, user)
+                return redirect('home')  # Redirect to a success page
+            else:
+                messages.error(request, 'Invalid username or password')
+                return render(request, 'login.html')
+        else:
+            return render(request, 'login.html')
+    
+
+
