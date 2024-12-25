@@ -24,8 +24,10 @@ def create_ref_code():
 
 class PaymentView(View):
     def get(self, *args, **kwargs):
-        # order
-        order = Order.objects.get(user=self.request.user, ordered=False)
+        try:
+            order = Order.objects.get(user=self.request.user, ordered=False)
+        except Order.MultipleObjectsReturned:
+            order = Order.objects.filter(user=self.request.user, ordered=False).first()
         if order.billing_address:
             context = {
                 'order': order,
@@ -38,7 +40,10 @@ class PaymentView(View):
             return redirect("core:checkout")
 
     def post(self, *args, **kwargs):
-        order = Order.objects.get(user=self.request.user, ordered=False)
+        try:
+            order = Order.objects.get(user=self.request.user, ordered=False)
+        except Order.MultipleObjectsReturned:
+            order = Order.objects.filter(user=self.request.user, ordered=False).first()
         token = self.request.POST.get('stripeToken')
         amount = int(order.get_total() * 100)
         try:
@@ -325,6 +330,9 @@ def get_coupon(request, code):
     try:
         coupon = Coupon.objects.get(code=code)
         return coupon
+    except Coupon.MultipleObjectsReturned:
+        coupon = Coupon.objects.filter(code=code).first()
+        return coupon
     except ObjectDoesNotExist:
         messages.info(request, "This coupon does not exist")
         return redirect("core:checkout")
@@ -415,6 +423,6 @@ class RequestRefundView(View):
                 return render(request, 'login.html')
         else:
             return render(request, 'login.html')
-    
+
 
 
